@@ -1,10 +1,9 @@
-# تأكد من أن هذا السطر موجود في الأعلى:
 flutter_application_path = '../'
 
-# ثم الصق هذا:
-require File.join(flutter_application_path, '.ios', 'Flutter', 'pod_helper.rb')
 
-platform :ios, '13.0'  # يمكنك تغيير الإصدار حسب حاجتك
+require File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+
+platform :ios, '13.0'
 use_frameworks!
 
 target 'Runner' do
