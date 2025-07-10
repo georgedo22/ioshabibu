@@ -1,6 +1,12 @@
-platform :ios, '13.0'  # تأكد من أن الإصدار يتوافق مع إعداداتك
+# تأكد من أن هذا السطر موجود في الأعلى:
+flutter_application_path = '../'
+
+# ثم الصق هذا:
+require File.join(flutter_application_path, '.ios', 'Flutter', 'pod_helper.rb')
+
+platform :ios, '13.0'  # يمكنك تغيير الإصدار حسب حاجتك
 use_frameworks!
 
 target 'Runner' do
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  flutter_install_all_ios_pods(flutter_application_path)
 end
