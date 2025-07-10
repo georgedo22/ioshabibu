@@ -6,70 +6,105 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
+      - name: Fix Info.plist
+        script: |
+          # إنشاء Info.plist صحيح
+          cat > ios/Runner/Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          	<key>CFBundleDevelopmentRegion</key>
+          	<string>$(DEVELOPMENT_LANGUAGE)</string>
+          	<key>CFBundleDisplayName</key>
+          	<string>Habibui Ios</string>
+          	<key>CFBundleExecutable</key>
+          	<string>$(EXECUTABLE_NAME)</string>
+          	<key>CFBundleIdentifier</key>
+          	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+          	<key>CFBundleInfoDictionaryVersion</key>
+          	<string>6.0</string>
+          	<key>CFBundleName</key>
+          	<string>habibuios</string>
+          	<key>CFBundlePackageType</key>
+          	<string>APPL</string>
+          	<key>CFBundleShortVersionString</key>
+          	<string>$(FLUTTER_BUILD_NAME)</string>
+          	<key>CFBundleSignature</key>
+          	<string>????</string>
+          	<key>CFBundleVersion</key>
+          	<string>$(FLUTTER_BUILD_NUMBER)</string>
+          	<key>LSRequiresIPhoneOS</key>
+          	<true/>
+          	<key>UILaunchStoryboardName</key>
+          	<string>LaunchScreen</string>
+          	<key>UIMainStoryboardFile</key>
+          	<string>Main</string>
+          	<key>UISupportedInterfaceOrientations</key>
+          	<array>
+          		<string>UIInterfaceOrientationPortrait</string>
+          		<string>UIInterfaceOrientationLandscapeLeft</string>
+          		<string>UIInterfaceOrientationLandscapeRight</string>
+          	</array>
+          	<key>UISupportedInterfaceOrientations~ipad</key>
+          	<array>
+          		<string>UIInterfaceOrientationPortrait</string>
+          		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+          		<string>UIInterfaceOrientationLandscapeLeft</string>
+          		<string>UIInterfaceOrientationLandscapeRight</string>
+          	</array>
+          	<key>UIViewControllerBasedStatusBarAppearance</key>
+          	<false/>
+          	<key>CADisableMinimumFrameDurationOnPhone</key>
+          	<true/>
+          	<key>UIApplicationSupportsIndirectInputEvents</key>
+          	<true/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Fix AppDelegate
+        script: |
+          # إصلاح AppDelegate.swift
+          sed -i '' 's/@UIApplicationMain/@main/g' ios/Runner/AppDelegate.swift
+          sed -i '' 's/class AppDelegate: FlutterAppDelegate/class AppDelegate: FlutterAppDelegate/g' ios/Runner/AppDelegate.swift
+
+      - name: Fix gitignore
+        script: |
+          # إضافة Swift Package Manager directories إلى .gitignore
+          echo "" >> .gitignore
+          echo "# Swift Package Manager" >> .gitignore
+          echo ".build/" >> .gitignore
+          echo "DerivedData/" >> .gitignore
+          echo "*.xcworkspace" >> .gitignore
+
+      - name: Fix iOS deployment target
+        script: |
+          # تحديد iOS deployment target
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 12.0;/g' ios/Runner.xcodeproj/project.pbxproj
+          
+          # التأكد من أن Podfile يحتوي على الإصدار الصحيح
+          sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '12.0'/g" ios/Podfile
+
+      - name: Validate Info.plist
+        script: |
+          plutil -lint ios/Runner/Info.plist
+          echo "Info.plist validation complete"
+
       - name: Get Flutter dependencies
         script: |
           flutter pub get
-      - name: Clean iOS build
+
+      - name: Clean and install pods
         script: |
           cd ios
           rm -rf Pods
           rm -f Podfile.lock
-          cd ..
-          flutter clean
-      - name: Regenerate iOS files
-        script: |
-          flutter pub get
-          cd ios
           pod install
 
       - name: Build iOS
         script: |
-          
-          rm -f ios/Podfile
-          
-          
-          cat > ios/Podfile << 'EOF'
-          platform :ios, '12.0'
-          
-          ENV['COCOAPODS_DISABLE_STATS'] = 'true'
-          
-          project 'Runner', {
-            'Debug' => :debug,
-            'Profile' => :release,
-            'Release' => :release,
-          }
-          
-          def flutter_root
-            generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
-            unless File.exist?(generated_xcode_build_settings_path)
-              raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
-            end
-          
-            File.foreach(generated_xcode_build_settings_path) do |line|
-              matches = line.match(/FLUTTER_ROOT\=(.*)/)
-              return matches[1].strip if matches
-            end
-            raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
-          end
-          
-          require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
-          
-          flutter_ios_podfile_setup
-          
-          target 'Runner' do
-            use_frameworks!
-            use_modular_headers!
-          
-            flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-          end
-          
-          post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              flutter_additional_ios_build_settings(target)
-            end
-          end
-          EOF       
+          flutter build ios --release --no-codesign
 
     artifacts:
       - build/ios/iphoneos/Runner.app
-
