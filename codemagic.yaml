@@ -1,6 +1,7 @@
 workflows:
   ios-workflow:
     name: iOS Workflow
+    max_build_duration: 120
     environment:
       flutter: stable
       xcode: latest
@@ -78,22 +79,25 @@ workflows:
           echo "DerivedData/" >> .gitignore
           echo "*.xcworkspace" >> .gitignore
 
-      - name: Fix iOS deployment target
+      - name: Fix iOS Deployment Target
         script: |
-          # تحديد iOS deployment target
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 12.0;/g' ios/Runner.xcodeproj/project.pbxproj
-          
-          # التأكد من أن Podfile يحتوي على الإصدار الصحيح
-          sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '12.0'/g" ios/Podfile
+          # إصلاح iOS Deployment Target في جميع ملفات المشروع
+          find . -name "*.pbxproj" -exec sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [^;]*/IPHONEOS_DEPLOYMENT_TARGET = 12.0/g' {} \;
+          find . -name "*.pbxproj" -exec sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET=[^;]*/IPHONEOS_DEPLOYMENT_TARGET=12.0/g' {} \;
+            
+          # إصلاح Podfile
+          sed -i '' "s/platform :ios, '[^']*'/platform :ios, '12.0'/g" ios/Podfile
+            
+          # إصلاح AppFrameworkInfo.plist
+          /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 12.0" ios/Flutter/AppFrameworkInfo.plist || true
+      
 
       - name: Validate Info.plist
         script: |
           plutil -lint ios/Runner/Info.plist
           echo "Info.plist validation complete"
 
-      - name: Get Flutter dependencies
-        script: |
-          flutter pub get
+      
 
       - name: Clean and install pods
         script: |
